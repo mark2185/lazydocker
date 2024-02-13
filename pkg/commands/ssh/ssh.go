@@ -23,7 +23,7 @@ type SSHHandler struct {
 
 	dialContext func(ctx context.Context, network, addr string) (io.Closer, error)
 	startCmd    func(*exec.Cmd) error
-	tempDir     func(dir string, pattern string) (name string, err error)
+	tempDir     func(dir string, pattern string) (file *os.File, err error)
 	getenv      func(key string) string
 	setenv      func(key, value string) error
 }
@@ -36,7 +36,7 @@ func NewSSHHandler(oSCommand CmdKiller) *SSHHandler {
 			return (&net.Dialer{}).DialContext(ctx, network, addr)
 		},
 		startCmd: func(cmd *exec.Cmd) error { return cmd.Start() },
-		tempDir:  os.MkdirTemp,
+		tempDir:  os.CreateTemp,
 		getenv:   os.Getenv,
 		setenv:   os.Setenv,
 	}
@@ -86,11 +86,11 @@ func (t *tunneledDockerHost) Close() error {
 }
 
 func (self *SSHHandler) createDockerHostTunnel(ctx context.Context, remoteHost string) (*tunneledDockerHost, error) {
-	socketDir, err := self.tempDir("/tmp", "lazydocker-sshtunnel-")
+	socketDir, err := self.tempDir("", "lazydocker-sshtunnel-")
 	if err != nil {
 		return nil, fmt.Errorf("create ssh tunnel tmp file: %w", err)
 	}
-	localSocket := path.Join(socketDir, "dockerhost.sock")
+	localSocket := path.Join(socketDir.Name(), "dockerhost.sock")
 
 	cmd, err := self.tunnelSSH(ctx, remoteHost, localSocket)
 	if err != nil {
