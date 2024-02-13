@@ -46,7 +46,8 @@ func NewSSHHandler(oSCommand CmdKiller) *SSHHandler {
 // to point towards a local unix socket tunneled over SSH to the specified ssh host.
 func (self *SSHHandler) HandleSSHDockerHost() (io.Closer, error) {
 	const key = "DOCKER_HOST"
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	u, err := url.Parse(self.getenv(key))
 	if err != nil {
 		// if no or an invalid docker host is specified, continue nominally
